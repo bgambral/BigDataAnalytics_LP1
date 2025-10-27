@@ -1,0 +1,565 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMmKOcEYwQhNKJIlxKpmUHj"
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "oH6Nopq7S-HY",
+        "outputId": "235170ef-66ea-4f82-c97c-a2a313247aaf"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading from https://www.kaggle.com/api/v1/datasets/download/mubeenshehzadi/infant-wellness-and-risk-evaluation-dataset?dataset_version_number=1...\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 60.6k/60.6k [00:00<00:00, 28.2MB/s]"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Extracting files...\n",
+            "Path to dataset files: /root/.cache/kagglehub/datasets/mubeenshehzadi/infant-wellness-and-risk-evaluation-dataset/versions/1\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "\n"
+          ]
+        }
+      ],
+      "source": [
+        "import kagglehub\n",
+        "\n",
+        "# Download latest version\n",
+        "path = kagglehub.dataset_download(\"mubeenshehzadi/infant-wellness-and-risk-evaluation-dataset\")\n",
+        "\n",
+        "print(\"Path to dataset files:\", path)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.sql import SparkSession\n",
+        "\n",
+        "spark = SparkSession.builder.appName(\"InfantWellnessAnalysis\").getOrCreate()\n",
+        "\n",
+        "try:\n",
+        "    df = spark.read.csv(path + \"/*.csv\", header=True, inferSchema=True)\n",
+        "    df.show()\n",
+        "except Exception as e:\n",
+        "    print(f\"Error loading CSV file: {e}\")\n",
+        "    print(\"Please check the path and file name in the downloaded dataset.\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "mraoufLYTjNk",
+        "outputId": "a1ce281c-fb92-4e23-f707-ef9797019fd0"
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+\n",
+            "|baby_id|name|gender|gestational_age_weeks|birth_weight_kg|birth_length_cm|birth_head_circumference_cm|      date|age_days|weight_kg|length_cm|head_circumference_cm|temperature_c|heart_rate_bpm|respiratory_rate_bpm|oxygen_saturation| feeding_type|feeding_frequency_per_day|urine_output_count|stool_count|jaundice_level_mg_dl|apgar_score|immunizations_done|reflexes_normal|risk_level|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-10|       1|     3.28|     50.1|                 32.0|         37.0|           160|                  36|               98|      Formula|                       11|                 9|          0|                 4.2|        7.0|               Yes|            Yes|   At Risk|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-11|       2|     3.35|     50.2|                 32.0|         37.2|           156|                  40|               99|      Formula|                       11|                 5|          2|                10.6|       NULL|                No|             No|   At Risk|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-12|       3|     3.35|     50.6|                 32.1|         37.1|           137|                  37|               97|Breastfeeding|                        7|                 6|          5|                 9.8|       NULL|                No|             No|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-13|       4|     3.48|     50.3|                 32.0|         37.4|           130|                  33|               97|        Mixed|                       11|                 8|          4|                 8.1|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-14|       5|      3.5|     50.3|                 31.8|         36.8|           138|                  39|               96|Breastfeeding|                       11|                 7|          1|                11.6|       NULL|                No|            Yes|   At Risk|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-15|       6|     3.46|     50.7|                 32.1|         37.3|           136|                  37|               97|        Mixed|                       10|                 6|          0|                10.1|       NULL|                No|            Yes|   At Risk|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-16|       7|     3.53|     50.9|                 32.0|         37.0|           147|                  36|               98|      Formula|                       11|                 8|          1|                 4.0|       NULL|                No|             No|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-17|       8|     3.57|     50.3|                 32.1|         36.7|           133|                  40|               98|      Formula|                        7|                 7|          2|                 2.1|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-18|       9|     3.51|     50.5|                 32.1|         37.4|           135|                  35|               97|        Mixed|                        7|                 4|          2|                 3.8|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-19|      10|     3.69|     50.6|                 31.9|         36.8|           133|                  36|               96|        Mixed|                        7|                 8|          2|                 2.7|       NULL|                No|             No|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-20|      11|     3.68|     50.7|                 32.2|         37.0|           146|                  41|               97|        Mixed|                        7|                 6|          1|                 3.1|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-21|      12|     3.64|     50.5|                 32.1|         37.0|           149|                  36|               96|Breastfeeding|                        8|                 6|          5|                 2.0|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-22|      13|     3.67|     50.6|                 32.2|         37.5|           109|                  35|               97|Breastfeeding|                       12|                 5|          4|                 4.3|       NULL|                No|             No|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-23|      14|     3.77|     50.7|                 32.2|         36.8|           128|                  44|               97|        Mixed|                        7|                 4|          0|                 3.9|       NULL|                No|             No|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-24|      15|     3.82|     51.0|                 32.1|         36.7|           140|                  37|               96|Breastfeeding|                       12|                 8|          1|                 2.2|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-25|      16|     3.83|     50.8|                 32.2|         36.7|           144|                  35|               99|Breastfeeding|                        8|                 5|          3|                 0.7|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-26|      17|      3.8|     50.7|                 32.3|         37.1|           129|                  52|               99|Breastfeeding|                       11|                 6|          5|                 3.4|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-27|      18|     3.82|     51.0|                 32.3|         36.6|           135|                  33|               99|      Formula|                       10|                 5|          3|                 2.7|       NULL|                No|            Yes|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-28|      19|     3.94|     50.6|                 32.3|         37.2|           145|                  42|               96|Breastfeeding|                        8|                 8|          3|                 2.9|       NULL|                No|             No|   Healthy|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-29|      20|     3.86|     50.7|                 32.2|         36.8|           137|                  40|               97|      Formula|                       10|                 4|          3|                 1.9|       NULL|                No|            Yes|   Healthy|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+\n",
+            "only showing top 20 rows\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.ml.feature import StringIndexer\n",
+        "\n",
+        "categorical_cols = [\"gender\", \"feeding_type\", \"immunizations_done\", \"reflexes_normal\", \"risk_level\"]\n",
+        "indexed_cols = [col + \"_indexed\" for col in categorical_cols]\n",
+        "\n",
+        "indexers = [StringIndexer(inputCol=col, outputCol=col_indexed) for col, col_indexed in zip(categorical_cols, indexed_cols)]\n",
+        "\n",
+        "from pyspark.ml import Pipeline\n",
+        "pipeline = Pipeline(stages=indexers)\n",
+        "df_indexed = pipeline.fit(df).transform(df)\n",
+        "\n",
+        "df_indexed.show()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ym5q0oFdT8gL",
+        "outputId": "c763bc7c-9d5f-4217-d96f-23a9133e09bc"
+      },
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+\n",
+            "|baby_id|name|gender|gestational_age_weeks|birth_weight_kg|birth_length_cm|birth_head_circumference_cm|      date|age_days|weight_kg|length_cm|head_circumference_cm|temperature_c|heart_rate_bpm|respiratory_rate_bpm|oxygen_saturation| feeding_type|feeding_frequency_per_day|urine_output_count|stool_count|jaundice_level_mg_dl|apgar_score|immunizations_done|reflexes_normal|risk_level|feeding_type_indexed|gender_indexed|immunizations_done_indexed|reflexes_normal_indexed|risk_level_indexed|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-10|       1|     3.28|     50.1|                 32.0|         37.0|           160|                  36|               98|      Formula|                       11|                 9|          0|                 4.2|        7.0|               Yes|            Yes|   At Risk|                   1|           1.0|                       1.0|                    0.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-11|       2|     3.35|     50.2|                 32.0|         37.2|           156|                  40|               99|      Formula|                       11|                 5|          2|                10.6|       NULL|                No|             No|   At Risk|                   1|           1.0|                       0.0|                    1.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-12|       3|     3.35|     50.6|                 32.1|         37.1|           137|                  37|               97|Breastfeeding|                        7|                 6|          5|                 9.8|       NULL|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-13|       4|     3.48|     50.3|                 32.0|         37.4|           130|                  33|               97|        Mixed|                       11|                 8|          4|                 8.1|       NULL|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-14|       5|      3.5|     50.3|                 31.8|         36.8|           138|                  39|               96|Breastfeeding|                       11|                 7|          1|                11.6|       NULL|                No|            Yes|   At Risk|                   2|           1.0|                       0.0|                    0.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-15|       6|     3.46|     50.7|                 32.1|         37.3|           136|                  37|               97|        Mixed|                       10|                 6|          0|                10.1|       NULL|                No|            Yes|   At Risk|                   3|           1.0|                       0.0|                    0.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-16|       7|     3.53|     50.9|                 32.0|         37.0|           147|                  36|               98|      Formula|                       11|                 8|          1|                 4.0|       NULL|                No|             No|   Healthy|                   1|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-17|       8|     3.57|     50.3|                 32.1|         36.7|           133|                  40|               98|      Formula|                        7|                 7|          2|                 2.1|       NULL|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-18|       9|     3.51|     50.5|                 32.1|         37.4|           135|                  35|               97|        Mixed|                        7|                 4|          2|                 3.8|       NULL|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-19|      10|     3.69|     50.6|                 31.9|         36.8|           133|                  36|               96|        Mixed|                        7|                 8|          2|                 2.7|       NULL|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-20|      11|     3.68|     50.7|                 32.2|         37.0|           146|                  41|               97|        Mixed|                        7|                 6|          1|                 3.1|       NULL|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-21|      12|     3.64|     50.5|                 32.1|         37.0|           149|                  36|               96|Breastfeeding|                        8|                 6|          5|                 2.0|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-22|      13|     3.67|     50.6|                 32.2|         37.5|           109|                  35|               97|Breastfeeding|                       12|                 5|          4|                 4.3|       NULL|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-23|      14|     3.77|     50.7|                 32.2|         36.8|           128|                  44|               97|        Mixed|                        7|                 4|          0|                 3.9|       NULL|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-24|      15|     3.82|     51.0|                 32.1|         36.7|           140|                  37|               96|Breastfeeding|                       12|                 8|          1|                 2.2|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-25|      16|     3.83|     50.8|                 32.2|         36.7|           144|                  35|               99|Breastfeeding|                        8|                 5|          3|                 0.7|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-26|      17|      3.8|     50.7|                 32.3|         37.1|           129|                  52|               99|Breastfeeding|                       11|                 6|          5|                 3.4|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-27|      18|     3.82|     51.0|                 32.3|         36.6|           135|                  33|               99|      Formula|                       10|                 5|          3|                 2.7|       NULL|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-28|      19|     3.94|     50.6|                 32.3|         37.2|           145|                  42|               96|Breastfeeding|                        8|                 8|          3|                 2.9|       NULL|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-29|      20|     3.86|     50.7|                 32.2|         36.8|           137|                  40|               97|      Formula|                       10|                 4|          3|                 1.9|       NULL|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+\n",
+            "only showing top 20 rows\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fae7290a",
+        "outputId": "08a51a14-ff69-42bd-eae3-dc28ef8a1087"
+      },
+      "source": [
+        "df_filled = df_indexed.fillna(0, subset=['apgar_score'])\n",
+        "df_filled.show()"
+      ],
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+\n",
+            "|baby_id|name|gender|gestational_age_weeks|birth_weight_kg|birth_length_cm|birth_head_circumference_cm|      date|age_days|weight_kg|length_cm|head_circumference_cm|temperature_c|heart_rate_bpm|respiratory_rate_bpm|oxygen_saturation| feeding_type|feeding_frequency_per_day|urine_output_count|stool_count|jaundice_level_mg_dl|apgar_score|immunizations_done|reflexes_normal|risk_level|feeding_type_indexed|gender_indexed|immunizations_done_indexed|reflexes_normal_indexed|risk_level_indexed|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-10|       1|     3.28|     50.1|                 32.0|         37.0|           160|                  36|               98|      Formula|                       11|                 9|          0|                 4.2|        7.0|               Yes|            Yes|   At Risk|                   1|           1.0|                       1.0|                    0.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-11|       2|     3.35|     50.2|                 32.0|         37.2|           156|                  40|               99|      Formula|                       11|                 5|          2|                10.6|        0.0|                No|             No|   At Risk|                   1|           1.0|                       0.0|                    1.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-12|       3|     3.35|     50.6|                 32.1|         37.1|           137|                  37|               97|Breastfeeding|                        7|                 6|          5|                 9.8|        0.0|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-13|       4|     3.48|     50.3|                 32.0|         37.4|           130|                  33|               97|        Mixed|                       11|                 8|          4|                 8.1|        0.0|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-14|       5|      3.5|     50.3|                 31.8|         36.8|           138|                  39|               96|Breastfeeding|                       11|                 7|          1|                11.6|        0.0|                No|            Yes|   At Risk|                   2|           1.0|                       0.0|                    0.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-15|       6|     3.46|     50.7|                 32.1|         37.3|           136|                  37|               97|        Mixed|                       10|                 6|          0|                10.1|        0.0|                No|            Yes|   At Risk|                   3|           1.0|                       0.0|                    0.0|               1.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-16|       7|     3.53|     50.9|                 32.0|         37.0|           147|                  36|               98|      Formula|                       11|                 8|          1|                 4.0|        0.0|                No|             No|   Healthy|                   1|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-17|       8|     3.57|     50.3|                 32.1|         36.7|           133|                  40|               98|      Formula|                        7|                 7|          2|                 2.1|        0.0|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-18|       9|     3.51|     50.5|                 32.1|         37.4|           135|                  35|               97|        Mixed|                        7|                 4|          2|                 3.8|        0.0|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-19|      10|     3.69|     50.6|                 31.9|         36.8|           133|                  36|               96|        Mixed|                        7|                 8|          2|                 2.7|        0.0|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-20|      11|     3.68|     50.7|                 32.2|         37.0|           146|                  41|               97|        Mixed|                        7|                 6|          1|                 3.1|        0.0|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-21|      12|     3.64|     50.5|                 32.1|         37.0|           149|                  36|               96|Breastfeeding|                        8|                 6|          5|                 2.0|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-22|      13|     3.67|     50.6|                 32.2|         37.5|           109|                  35|               97|Breastfeeding|                       12|                 5|          4|                 4.3|        0.0|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-23|      14|     3.77|     50.7|                 32.2|         36.8|           128|                  44|               97|        Mixed|                        7|                 4|          0|                 3.9|        0.0|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-24|      15|     3.82|     51.0|                 32.1|         36.7|           140|                  37|               96|Breastfeeding|                       12|                 8|          1|                 2.2|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-25|      16|     3.83|     50.8|                 32.2|         36.7|           144|                  35|               99|Breastfeeding|                        8|                 5|          3|                 0.7|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-26|      17|      3.8|     50.7|                 32.3|         37.1|           129|                  52|               99|Breastfeeding|                       11|                 6|          5|                 3.4|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-27|      18|     3.82|     51.0|                 32.3|         36.6|           135|                  33|               99|      Formula|                       10|                 5|          3|                 2.7|        0.0|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-28|      19|     3.94|     50.6|                 32.3|         37.2|           145|                  42|               96|Breastfeeding|                        8|                 8|          3|                 2.9|        0.0|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-29|      20|     3.86|     50.7|                 32.2|         36.8|           137|                  40|               97|      Formula|                       10|                 4|          3|                 1.9|        0.0|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+\n",
+            "only showing top 20 rows\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pyspark.sql.functions import year, month, dayofmonth\n",
+        "\n",
+        "df_date_features = df_indexed.withColumn(\"year\", year(\"date\")) \\\n",
+        "                             .withColumn(\"month\", month(\"date\")) \\\n",
+        "                             .withColumn(\"day\", dayofmonth(\"date\"))\n",
+        "\n",
+        "df_date_features.show()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "hzg4UK3uVPZa",
+        "outputId": "cfec31b8-e501-4654-f556-5c7f794f06d3"
+      },
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+----+-----+---+\n",
+            "|baby_id|name|gender|gestational_age_weeks|birth_weight_kg|birth_length_cm|birth_head_circumference_cm|      date|age_days|weight_kg|length_cm|head_circumference_cm|temperature_c|heart_rate_bpm|respiratory_rate_bpm|oxygen_saturation| feeding_type|feeding_frequency_per_day|urine_output_count|stool_count|jaundice_level_mg_dl|apgar_score|immunizations_done|reflexes_normal|risk_level|feeding_type_indexed|gender_indexed|immunizations_done_indexed|reflexes_normal_indexed|risk_level_indexed|year|month|day|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+----+-----+---+\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-10|       1|     3.28|     50.1|                 32.0|         37.0|           160|                  36|               98|      Formula|                       11|                 9|          0|                 4.2|        7.0|               Yes|            Yes|   At Risk|                   1|           1.0|                       1.0|                    0.0|               1.0|2024|   12| 10|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-11|       2|     3.35|     50.2|                 32.0|         37.2|           156|                  40|               99|      Formula|                       11|                 5|          2|                10.6|       NULL|                No|             No|   At Risk|                   1|           1.0|                       0.0|                    1.0|               1.0|2024|   12| 11|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-12|       3|     3.35|     50.6|                 32.1|         37.1|           137|                  37|               97|Breastfeeding|                        7|                 6|          5|                 9.8|       NULL|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 12|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-13|       4|     3.48|     50.3|                 32.0|         37.4|           130|                  33|               97|        Mixed|                       11|                 8|          4|                 8.1|       NULL|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 13|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-14|       5|      3.5|     50.3|                 31.8|         36.8|           138|                  39|               96|Breastfeeding|                       11|                 7|          1|                11.6|       NULL|                No|            Yes|   At Risk|                   2|           1.0|                       0.0|                    0.0|               1.0|2024|   12| 14|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-15|       6|     3.46|     50.7|                 32.1|         37.3|           136|                  37|               97|        Mixed|                       10|                 6|          0|                10.1|       NULL|                No|            Yes|   At Risk|                   3|           1.0|                       0.0|                    0.0|               1.0|2024|   12| 15|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-16|       7|     3.53|     50.9|                 32.0|         37.0|           147|                  36|               98|      Formula|                       11|                 8|          1|                 4.0|       NULL|                No|             No|   Healthy|                   1|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 16|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-17|       8|     3.57|     50.3|                 32.1|         36.7|           133|                  40|               98|      Formula|                        7|                 7|          2|                 2.1|       NULL|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 17|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-18|       9|     3.51|     50.5|                 32.1|         37.4|           135|                  35|               97|        Mixed|                        7|                 4|          2|                 3.8|       NULL|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 18|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-19|      10|     3.69|     50.6|                 31.9|         36.8|           133|                  36|               96|        Mixed|                        7|                 8|          2|                 2.7|       NULL|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 19|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-20|      11|     3.68|     50.7|                 32.2|         37.0|           146|                  41|               97|        Mixed|                        7|                 6|          1|                 3.1|       NULL|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 20|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-21|      12|     3.64|     50.5|                 32.1|         37.0|           149|                  36|               96|Breastfeeding|                        8|                 6|          5|                 2.0|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 21|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-22|      13|     3.67|     50.6|                 32.2|         37.5|           109|                  35|               97|Breastfeeding|                       12|                 5|          4|                 4.3|       NULL|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 22|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-23|      14|     3.77|     50.7|                 32.2|         36.8|           128|                  44|               97|        Mixed|                        7|                 4|          0|                 3.9|       NULL|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 23|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-24|      15|     3.82|     51.0|                 32.1|         36.7|           140|                  37|               96|Breastfeeding|                       12|                 8|          1|                 2.2|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 24|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-25|      16|     3.83|     50.8|                 32.2|         36.7|           144|                  35|               99|Breastfeeding|                        8|                 5|          3|                 0.7|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 25|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-26|      17|      3.8|     50.7|                 32.3|         37.1|           129|                  52|               99|Breastfeeding|                       11|                 6|          5|                 3.4|       NULL|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 26|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-27|      18|     3.82|     51.0|                 32.3|         36.6|           135|                  33|               99|      Formula|                       10|                 5|          3|                 2.7|       NULL|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 27|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-28|      19|     3.94|     50.6|                 32.3|         37.2|           145|                  42|               96|Breastfeeding|                        8|                 8|          3|                 2.9|       NULL|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 28|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-29|      20|     3.86|     50.7|                 32.2|         36.8|           137|                  40|               97|      Formula|                       10|                 4|          3|                 1.9|       NULL|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 29|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+----+-----+---+\n",
+            "only showing top 20 rows\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "pP6njELVViBy",
+        "outputId": "6f616b72-ad66-4966-f1c3-7770826efe29"
+      },
+      "source": [
+        "from pyspark.ml.feature import VectorAssembler\n",
+        "from pyspark.sql.functions import col\n",
+        "\n",
+        "# Define the feature columns (excluding the target and original categorical columns)\n",
+        "feature_cols = [col_name for col_name in df_date_features.columns if col_name not in [\"baby_id\", \"name\", \"date\", \"gender\", \"feeding_type\", \"immunizations_done\", \"reflexes_normal\", \"risk_level\"]]\n",
+        "\n",
+        "# Although we filled some nulls earlier, let's ensure all potential nulls in feature columns are handled before assembling.\n",
+        "# We can fill with 0, or use a different strategy like mean/median if appropriate for the data.\n",
+        "# For now, let's fill with 0 for simplicity for all feature columns.\n",
+        "df_filled_all_features = df_date_features.fillna(0, subset=feature_cols)\n",
+        "\n",
+        "\n",
+        "# Create a VectorAssembler and set handleInvalid to 'keep'\n",
+        "assembler = VectorAssembler(inputCols=feature_cols, outputCol=\"features\", handleInvalid='keep')\n",
+        "\n",
+        "# Transform the DataFrame\n",
+        "df_assembled = assembler.transform(df_filled_all_features)\n",
+        "\n",
+        "df_assembled.show()"
+      ],
+      "execution_count": 19,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+----+-----+---+--------------------+\n",
+            "|baby_id|name|gender|gestational_age_weeks|birth_weight_kg|birth_length_cm|birth_head_circumference_cm|      date|age_days|weight_kg|length_cm|head_circumference_cm|temperature_c|heart_rate_bpm|respiratory_rate_bpm|oxygen_saturation| feeding_type|feeding_frequency_per_day|urine_output_count|stool_count|jaundice_level_mg_dl|apgar_score|immunizations_done|reflexes_normal|risk_level|feeding_type_indexed|gender_indexed|immunizations_done_indexed|reflexes_normal_indexed|risk_level_indexed|year|month|day|            features|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+----+-----+---+--------------------+\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-10|       1|     3.28|     50.1|                 32.0|         37.0|           160|                  36|               98|      Formula|                       11|                 9|          0|                 4.2|        7.0|               Yes|            Yes|   At Risk|                   1|           1.0|                       1.0|                    0.0|               1.0|2024|   12| 10|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-11|       2|     3.35|     50.2|                 32.0|         37.2|           156|                  40|               99|      Formula|                       11|                 5|          2|                10.6|        0.0|                No|             No|   At Risk|                   1|           1.0|                       0.0|                    1.0|               1.0|2024|   12| 11|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-12|       3|     3.35|     50.6|                 32.1|         37.1|           137|                  37|               97|Breastfeeding|                        7|                 6|          5|                 9.8|        0.0|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 12|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-13|       4|     3.48|     50.3|                 32.0|         37.4|           130|                  33|               97|        Mixed|                       11|                 8|          4|                 8.1|        0.0|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 13|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-14|       5|      3.5|     50.3|                 31.8|         36.8|           138|                  39|               96|Breastfeeding|                       11|                 7|          1|                11.6|        0.0|                No|            Yes|   At Risk|                   2|           1.0|                       0.0|                    0.0|               1.0|2024|   12| 14|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-15|       6|     3.46|     50.7|                 32.1|         37.3|           136|                  37|               97|        Mixed|                       10|                 6|          0|                10.1|        0.0|                No|            Yes|   At Risk|                   3|           1.0|                       0.0|                    0.0|               1.0|2024|   12| 15|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-16|       7|     3.53|     50.9|                 32.0|         37.0|           147|                  36|               98|      Formula|                       11|                 8|          1|                 4.0|        0.0|                No|             No|   Healthy|                   1|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 16|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-17|       8|     3.57|     50.3|                 32.1|         36.7|           133|                  40|               98|      Formula|                        7|                 7|          2|                 2.1|        0.0|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 17|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-18|       9|     3.51|     50.5|                 32.1|         37.4|           135|                  35|               97|        Mixed|                        7|                 4|          2|                 3.8|        0.0|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 18|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-19|      10|     3.69|     50.6|                 31.9|         36.8|           133|                  36|               96|        Mixed|                        7|                 8|          2|                 2.7|        0.0|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 19|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-20|      11|     3.68|     50.7|                 32.2|         37.0|           146|                  41|               97|        Mixed|                        7|                 6|          1|                 3.1|        0.0|                No|            Yes|   Healthy|                   3|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 20|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-21|      12|     3.64|     50.5|                 32.1|         37.0|           149|                  36|               96|Breastfeeding|                        8|                 6|          5|                 2.0|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 21|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-22|      13|     3.67|     50.6|                 32.2|         37.5|           109|                  35|               97|Breastfeeding|                       12|                 5|          4|                 4.3|        0.0|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 22|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-23|      14|     3.77|     50.7|                 32.2|         36.8|           128|                  44|               97|        Mixed|                        7|                 4|          0|                 3.9|        0.0|                No|             No|   Healthy|                   3|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 23|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-24|      15|     3.82|     51.0|                 32.1|         36.7|           140|                  37|               96|Breastfeeding|                       12|                 8|          1|                 2.2|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 24|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-25|      16|     3.83|     50.8|                 32.2|         36.7|           144|                  35|               99|Breastfeeding|                        8|                 5|          3|                 0.7|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 25|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-26|      17|      3.8|     50.7|                 32.3|         37.1|           129|                  52|               99|Breastfeeding|                       11|                 6|          5|                 3.4|        0.0|                No|            Yes|   Healthy|                   2|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 26|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-27|      18|     3.82|     51.0|                 32.3|         36.6|           135|                  33|               99|      Formula|                       10|                 5|          3|                 2.7|        0.0|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 27|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-28|      19|     3.94|     50.6|                 32.3|         37.2|           145|                  42|               96|Breastfeeding|                        8|                 8|          3|                 2.9|        0.0|                No|             No|   Healthy|                   2|           1.0|                       0.0|                    1.0|               0.0|2024|   12| 28|[40.2,3.3,50.0,31...|\n",
+            "|   B001|Sara|Female|                 40.2|            3.3|           50.0|                       31.9|2024-12-29|      20|     3.86|     50.7|                 32.2|         36.8|           137|                  40|               97|      Formula|                       10|                 4|          3|                 1.9|        0.0|                No|            Yes|   Healthy|                   1|           1.0|                       0.0|                    0.0|               0.0|2024|   12| 29|[40.2,3.3,50.0,31...|\n",
+            "+-------+----+------+---------------------+---------------+---------------+---------------------------+----------+--------+---------+---------+---------------------+-------------+--------------+--------------------+-----------------+-------------+-------------------------+------------------+-----------+--------------------+-----------+------------------+---------------+----------+--------------------+--------------+--------------------------+-----------------------+------------------+----+-----+---+--------------------+\n",
+            "only showing top 20 rows\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "train_data, test_data = df_assembled.randomSplit([0.8, 0.2], seed=42)\n",
+        "\n",
+        "print(\"Training Data Count:\", train_data.count())\n",
+        "print(\"Testing Data Count:\", test_data.count())"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "MkbxZR7_YcBL",
+        "outputId": "5c858edc-e2e3-4ece-e136-1b666a170976"
+      },
+      "execution_count": 21,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Training Data Count: 2451\n",
+            "Testing Data Count: 549\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "4255f0c2",
+        "outputId": "f2122f73-0bff-43e1-e50a-d594857b33b4"
+      },
+      "source": [
+        "from pyspark.ml.classification import LogisticRegression\n",
+        "\n",
+        "# Initialize the Logistic Regression model\n",
+        "lr = LogisticRegression(featuresCol='features', labelCol='risk_level_indexed')\n",
+        "\n",
+        "# Train the model\n",
+        "lr_model = lr.fit(train_data)\n",
+        "\n",
+        "print(\"Logistic Regression model trained successfully!\")"
+      ],
+      "execution_count": 22,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Logistic Regression model trained successfully!\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6afe904c",
+        "outputId": "4448bbb6-0a5c-4819-a978-3e9659aa3095"
+      },
+      "source": [
+        "from pyspark.sql.functions import corr\n",
+        "\n",
+        "# Select the feature columns and the target column\n",
+        "feature_cols = [col_name for col_name in df_assembled.columns if col_name not in [\"baby_id\", \"name\", \"date\", \"gender\", \"feeding_type\", \"immunizations_done\", \"reflexes_normal\", \"risk_level\", \"features\", \"risk_level_indexed\"]]\n",
+        "target_col = \"jaundice_level_mg_dl\"\n",
+        "\n",
+        "# Compute Pearson correlation for each feature with the target\n",
+        "correlations = {}\n",
+        "for feature in feature_cols:\n",
+        "    correlation = df_assembled.select(corr(feature, target_col)).collect()[0][0]\n",
+        "    correlations[feature] = correlation\n",
+        "\n",
+        "# Print the correlations\n",
+        "for feature, correlation in correlations.items():\n",
+        "    print(f\"Pearson correlation between {feature} and {target_col}: {correlation}\")"
+      ],
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Pearson correlation between gestational_age_weeks and jaundice_level_mg_dl: -0.016173982408249823\n",
+            "Pearson correlation between birth_weight_kg and jaundice_level_mg_dl: 0.00015373905666071238\n",
+            "Pearson correlation between birth_length_cm and jaundice_level_mg_dl: 0.013805139232297302\n",
+            "Pearson correlation between birth_head_circumference_cm and jaundice_level_mg_dl: -0.006415598644855325\n",
+            "Pearson correlation between age_days and jaundice_level_mg_dl: -0.5381045912762934\n",
+            "Pearson correlation between weight_kg and jaundice_level_mg_dl: -0.2245963127219177\n",
+            "Pearson correlation between length_cm and jaundice_level_mg_dl: -0.09483335045832178\n",
+            "Pearson correlation between head_circumference_cm and jaundice_level_mg_dl: -0.06690345561087434\n",
+            "Pearson correlation between temperature_c and jaundice_level_mg_dl: 0.01918579382998334\n",
+            "Pearson correlation between heart_rate_bpm and jaundice_level_mg_dl: -0.02420233205101825\n",
+            "Pearson correlation between respiratory_rate_bpm and jaundice_level_mg_dl: -0.010843935163746514\n",
+            "Pearson correlation between oxygen_saturation and jaundice_level_mg_dl: -0.013698867508741027\n",
+            "Pearson correlation between feeding_frequency_per_day and jaundice_level_mg_dl: 0.03489564608170068\n",
+            "Pearson correlation between urine_output_count and jaundice_level_mg_dl: 0.007104497409231222\n",
+            "Pearson correlation between stool_count and jaundice_level_mg_dl: -0.007649920233566\n",
+            "Pearson correlation between jaundice_level_mg_dl and jaundice_level_mg_dl: 1.0\n",
+            "Pearson correlation between apgar_score and jaundice_level_mg_dl: -0.0799589557193106\n",
+            "Pearson correlation between feeding_type_indexed and jaundice_level_mg_dl: 0.015946091673991615\n",
+            "Pearson correlation between gender_indexed and jaundice_level_mg_dl: -0.005216912581164661\n",
+            "Pearson correlation between immunizations_done_indexed and jaundice_level_mg_dl: -0.11557841134585586\n",
+            "Pearson correlation between reflexes_normal_indexed and jaundice_level_mg_dl: 0.023133928627156585\n",
+            "Pearson correlation between year and jaundice_level_mg_dl: -0.02967860512726254\n",
+            "Pearson correlation between month and jaundice_level_mg_dl: 0.0028584482147387567\n",
+            "Pearson correlation between day and jaundice_level_mg_dl: -0.03431486234483186\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "a3288846",
+        "outputId": "bfef55f2-e3c3-4f5b-e8b6-01ea67937e4e"
+      },
+      "source": [
+        "# Remove the correlation of the target with itself\n",
+        "if target_col in correlations:\n",
+        "    del correlations[target_col]\n",
+        "\n",
+        "# Sort features by the absolute value of their correlation in descending order\n",
+        "sorted_correlations = sorted(correlations.items(), key=lambda item: abs(item[1]), reverse=True)\n",
+        "\n",
+        "print(\"Features ranked by the strength of their correlation with Jaundice Level:\")\n",
+        "for feature, correlation in sorted_correlations:\n",
+        "    print(f\"{feature}: {correlation}\")\n",
+        "\n",
+        "# Separate and print features with strongest positive and negative correlations\n",
+        "print(\"\\nFeatures with the strongest positive correlations:\")\n",
+        "for feature, correlation in sorted_correlations:\n",
+        "    if correlation > 0:\n",
+        "        print(f\"{feature}: {correlation}\")\n",
+        "\n",
+        "print(\"\\nFeatures with the strongest negative correlations:\")\n",
+        "for feature, correlation in sorted_correlations:\n",
+        "    if correlation < 0:\n",
+        "        print(f\"{feature}: {correlation}\")"
+      ],
+      "execution_count": 24,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Features ranked by the strength of their correlation with Jaundice Level:\n",
+            "age_days: -0.5381045912762934\n",
+            "weight_kg: -0.2245963127219177\n",
+            "immunizations_done_indexed: -0.11557841134585586\n",
+            "length_cm: -0.09483335045832178\n",
+            "apgar_score: -0.0799589557193106\n",
+            "head_circumference_cm: -0.06690345561087434\n",
+            "feeding_frequency_per_day: 0.03489564608170068\n",
+            "day: -0.03431486234483186\n",
+            "year: -0.02967860512726254\n",
+            "heart_rate_bpm: -0.02420233205101825\n",
+            "reflexes_normal_indexed: 0.023133928627156585\n",
+            "temperature_c: 0.01918579382998334\n",
+            "gestational_age_weeks: -0.016173982408249823\n",
+            "feeding_type_indexed: 0.015946091673991615\n",
+            "birth_length_cm: 0.013805139232297302\n",
+            "oxygen_saturation: -0.013698867508741027\n",
+            "respiratory_rate_bpm: -0.010843935163746514\n",
+            "stool_count: -0.007649920233566\n",
+            "urine_output_count: 0.007104497409231222\n",
+            "birth_head_circumference_cm: -0.006415598644855325\n",
+            "gender_indexed: -0.005216912581164661\n",
+            "month: 0.0028584482147387567\n",
+            "birth_weight_kg: 0.00015373905666071238\n",
+            "\n",
+            "Features with the strongest positive correlations:\n",
+            "feeding_frequency_per_day: 0.03489564608170068\n",
+            "reflexes_normal_indexed: 0.023133928627156585\n",
+            "temperature_c: 0.01918579382998334\n",
+            "feeding_type_indexed: 0.015946091673991615\n",
+            "birth_length_cm: 0.013805139232297302\n",
+            "urine_output_count: 0.007104497409231222\n",
+            "month: 0.0028584482147387567\n",
+            "birth_weight_kg: 0.00015373905666071238\n",
+            "\n",
+            "Features with the strongest negative correlations:\n",
+            "age_days: -0.5381045912762934\n",
+            "weight_kg: -0.2245963127219177\n",
+            "immunizations_done_indexed: -0.11557841134585586\n",
+            "length_cm: -0.09483335045832178\n",
+            "apgar_score: -0.0799589557193106\n",
+            "head_circumference_cm: -0.06690345561087434\n",
+            "day: -0.03431486234483186\n",
+            "year: -0.02967860512726254\n",
+            "heart_rate_bpm: -0.02420233205101825\n",
+            "gestational_age_weeks: -0.016173982408249823\n",
+            "oxygen_saturation: -0.013698867508741027\n",
+            "respiratory_rate_bpm: -0.010843935163746514\n",
+            "stool_count: -0.007649920233566\n",
+            "birth_head_circumference_cm: -0.006415598644855325\n",
+            "gender_indexed: -0.005216912581164661\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
